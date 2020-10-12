@@ -259,54 +259,98 @@ fn
 let
   var i: $BS.Bytestring0?
   val () = i := vi
+  val i_sz = $BS.length i
 in
-if $BS.length i < 6
-then None_vt() where {
-  prval () = vi := i
-}
-else
-case+ $Vicpack.parse i of
-| ~list_vt_nil() => None_vt() where {
-  prval () = vi := i
-}
-| packages => walk_packages( packages, (None_vt(), None_vt())) where {
-  prval () = vi := i
-  fun
-    walk_packages
-    {n:nat}
-    .<n>.
-    ( xs: list_vt( $Vicpack.Vicpack, n)
-    , acc: (Option_vt( $BS.BytestringNSH0), Option_vt( $BS.BytestringNSH0))
-    ): Option_vt( @($BS.BytestringNSH0, $BS.BytestringNSH0)) =
-  case+ xs of
-  | ~list_vt_nil() =>
-    ( case- acc of
-    | @(~None_vt(), ~None_vt())=> None_vt()
-    | @(~None_vt(), ~Some_vt(h))=> Some_vt( ($BS.pack "", h))
-    | @(~Some_vt(t), ~None_vt()) => Some_vt( (t, $BS.pack ""))
-    | @(~Some_vt(t), ~Some_vt(h)) => Some_vt( (t, h))
-    )
-  | ~list_vt_cons( head, tail) =>
-    ( case- acc of
-    | @( ~Some_vt(t), ~Some_vt(h)) => walk_packages( tail, (Some_vt(t), Some_vt(h))) where {
-      val () = $Vicpack.free head
+ifcase
+| $BS.length i < 4 => None_vt() where { prval () = vi := i }
+| i_sz <> i2sz 4 * ( i_sz / i2sz 4) => None_vt() where { prval () = vi := i }
+| _ =>
+  let
+    prval _ = $BS.lemma_bytestring_param(i)
+    val ( pf | p, sz) = $BS.bs2bytes(i)
+    val p_s = ptr2str( pf | p, sz) where {
+      extern castfn
+        ptr2str
+        {n:nat}{l:addr}
+        ( !array_v(byte, l, n) 
+        | ptr l
+        , size_t n
+        ):<> string(n)
     }
-    | @(~None_vt(), some) => 
-      ( case+ head of
-      | ~$Vicpack.temperature_vt(t) => walk_packages( tail, (Some_vt(double2bs t), some))
-      | _ => walk_packages( tail, (None_vt(), some)) where {
-        val () = $Vicpack.free head
-      }
-      )
-    | @(some, ~None_vt()) =>
-      ( case+ head of
-      | ~$Vicpack.humidity_vt(h) => walk_packages( tail, (some, Some_vt(uint322bs h)))
-      | _ => walk_packages( tail, (some, None_vt())) where {
-        val () = $Vicpack.free head
-      }
-      )
-    )
-}
+  in
+    case+ $B64.decode1( p_s, sz) of
+    | ~None_vt() => None_vt() where { 
+      prval () = $BS.bytes_addback( pf | i)
+      prval () = vi := i
+    }
+    | ~Some_vt( decoded0) =>
+    let
+      val ( arr, cap, sz) = decoded0
+    in
+        if sz < 6
+        then None_vt() where {
+          prval () = $BS.bytes_addback( pf | i)
+          prval () = vi := i
+          val () = arrayptr_free arr
+        }
+        else 
+        let
+          val ( arr_pf | arr_p) = arrayptr_takeout_viewptr arr
+          var decoded: $BS.Bytestring0?
+          val () = decoded := $BS.pack( arr_pf | arr_p, sz, cap)
+          prval () = $BS.bytes_addback( pf | i)
+          prval () = vi := i
+        in
+          case+ $Vicpack.parse decoded of
+          | ~list_vt_nil() => None_vt() where {
+            val () = println!("parse returned 0 elements")
+            val () = $BS.free( arr_pf | decoded)
+            prval () = arrayptr_addback( arr_pf | arr)
+            val () = arrayptr_free arr
+          }
+          | packages => walk_packages( packages, (None_vt(), None_vt())) where {
+            val () = $BS.free( arr_pf | decoded)
+            prval () = arrayptr_addback( arr_pf | arr)
+            val () = arrayptr_free arr
+            fun
+              walk_packages
+              {n:nat}
+              .<n>.
+              ( xs: list_vt( $Vicpack.Vicpack, n)
+              , acc: (Option_vt( $BS.BytestringNSH0), Option_vt( $BS.BytestringNSH0))
+              ): Option_vt( @($BS.BytestringNSH0, $BS.BytestringNSH0)) =
+            case+ xs of
+            | ~list_vt_nil() =>
+              ( case- acc of
+              | @(~None_vt(), ~None_vt())=> None_vt()
+              | @(~None_vt(), ~Some_vt(h))=> Some_vt( ($BS.pack "", h))
+              | @(~Some_vt(t), ~None_vt()) => Some_vt( (t, $BS.pack ""))
+              | @(~Some_vt(t), ~Some_vt(h)) => Some_vt( (t, h))
+              )
+            | ~list_vt_cons( head, tail) =>
+              ( case- acc of
+              | @( ~Some_vt(t), ~Some_vt(h)) => walk_packages( tail, (Some_vt(t), Some_vt(h))) where {
+                val () = $Vicpack.free head
+              }
+              | @(~None_vt(), some) => 
+                ( case+ head of
+                | ~$Vicpack.temperature_vt(t) => walk_packages( tail, (Some_vt(double2bs t), some))
+                | _ => walk_packages( tail, (None_vt(), some)) where {
+                  val () = $Vicpack.free head
+                }
+                )
+              | @(some, ~None_vt()) =>
+                ( case+ head of
+                | ~$Vicpack.humidity_vt(h) => walk_packages( tail, (some, Some_vt(uint322bs h)))
+                | _ => walk_packages( tail, (some, None_vt())) where {
+                  val () = $Vicpack.free head
+                }
+                )
+              )
+          }
+        end
+    end
+  end
 end
 
 fn
