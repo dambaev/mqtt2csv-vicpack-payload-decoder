@@ -332,17 +332,25 @@ ifcase
               | @( ~Some_vt(t), ~Some_vt(h)) => walk_packages( tail, (Some_vt(t), Some_vt(h))) where {
                 val () = $Vicpack.free head
               }
-              | @(~None_vt(), some) => 
+              | @(~None_vt(), ~None_vt()) => 
                 ( case+ head of
-                | ~$Vicpack.temperature_vt(t) => walk_packages( tail, (Some_vt(double2bs t), some))
-                | _ => walk_packages( tail, (None_vt(), some)) where {
+                | ~$Vicpack.temperature_vt(t) => walk_packages( tail, (Some_vt(double2bs t), None_vt()))
+                | ~$Vicpack.humidity_vt(h) => walk_packages( tail, (None_vt(), Some_vt(uint322bs h)))
+                | _ => walk_packages( tail, (None_vt(), None_vt())) where {
                   val () = $Vicpack.free head
                 }
                 )
-              | @(some, ~None_vt()) =>
+              | @(~Some_vt(t), ~None_vt()) =>
                 ( case+ head of
-                | ~$Vicpack.humidity_vt(h) => walk_packages( tail, (some, Some_vt(uint322bs h)))
-                | _ => walk_packages( tail, (some, None_vt())) where {
+                | ~$Vicpack.humidity_vt(h) => walk_packages( tail, (Some_vt(t), Some_vt(uint322bs h)))
+                | _ => walk_packages( tail, (Some_vt(t), None_vt())) where {
+                  val () = $Vicpack.free head
+                }
+                )
+              | @(~None_vt(), ~Some_vt(h)) =>
+                ( case+ head of
+                | ~$Vicpack.temperature_vt(t) => walk_packages( tail, (Some_vt(double2bs t), Some_vt(h)))
+                | _ => walk_packages( tail, (None_vt(), Some_vt(h))) where {
                   val () = $Vicpack.free head
                 }
                 )
