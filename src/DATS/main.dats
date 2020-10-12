@@ -286,7 +286,11 @@ in
               | ~Some_vt(bs) => $BS.free(bs)
           }
           | (~Some_vt( time), ~Some_vt(hws), ~Some_vt(rawpayload)) => {
-            val () = $BS.printlnC( time + hws + rawpayload)
+            val () = $BS.printlnC( time
+                                 + $BS.pack "\t"
+                                 + hws
+                                 + $BS.pack "\t"
+                                 + rawpayload)
           }
         } // meta
         else () // root
