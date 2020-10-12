@@ -228,6 +228,86 @@ in
   Some_vt( bs)
 end
 
+fn
+  uint322bs 
+  ( i: uint32
+  ): $BS.BytestringNSH1 = result where {
+  val (pf, fpf | p) = array_ptr_alloc<uchar>(i2sz 100)
+  val _ = $extfcall( int, "sprintf", p, "%u", i)
+  val sz = g1ofg0( $extfcall( size_t, "strlen", p))
+  val () = assertloc( sz <= i2sz 100)
+  val () = assertloc( sz > i2sz 0)
+  val result = $BS.pack( pf, fpf | p, sz, i2sz 100)
+}
+fn
+  double2bs
+  ( i: double
+  ): $BS.BytestringNSH1 = result where {
+  val (pf, fpf | p) = array_ptr_alloc<uchar>(i2sz 100)
+  val _ = $extfcall( int, "sprintf", p, "%f", i)
+  val sz = g1ofg0( $extfcall( size_t, "strlen", p))
+  val () = assertloc( sz <= i2sz 100)
+  val () = assertloc( sz > i2sz 0)
+  val result = $BS.pack( pf, fpf | p, sz, i2sz 100)
+}
+
+
+fn
+  get_temperature_humidity
+  (vi: !$BS.Bytestring0
+  ): Option_vt( @( $BS.BytestringNSH0, $BS.BytestringNSH0)) =
+let
+  var i: $BS.Bytestring0?
+  val () = i := vi
+in
+if $BS.length i < 6
+then None_vt() where {
+  prval () = vi := i
+}
+else
+case+ $Vicpack.parse i of
+| ~list_vt_nil() => None_vt() where {
+  prval () = vi := i
+}
+| packages => walk_packages( packages, (None_vt(), None_vt())) where {
+  prval () = vi := i
+  fun
+    walk_packages
+    {n:nat}
+    .<n>.
+    ( xs: list_vt( $Vicpack.Vicpack, n)
+    , acc: (Option_vt( $BS.BytestringNSH0), Option_vt( $BS.BytestringNSH0))
+    ): Option_vt( @($BS.BytestringNSH0, $BS.BytestringNSH0)) =
+  case+ xs of
+  | ~list_vt_nil() =>
+    ( case- acc of
+    | @(~None_vt(), ~None_vt())=> None_vt()
+    | @(~None_vt(), ~Some_vt(h))=> Some_vt( ($BS.pack "", h))
+    | @(~Some_vt(t), ~None_vt()) => Some_vt( (t, $BS.pack ""))
+    | @(~Some_vt(t), ~Some_vt(h)) => Some_vt( (t, h))
+    )
+  | ~list_vt_cons( head, tail) =>
+    ( case- acc of
+    | @( ~Some_vt(t), ~Some_vt(h)) => walk_packages( tail, (Some_vt(t), Some_vt(h))) where {
+      val () = $Vicpack.free head
+    }
+    | @(~None_vt(), some) => 
+      ( case+ head of
+      | ~$Vicpack.temperature_vt(t) => walk_packages( tail, (Some_vt(double2bs t), some))
+      | _ => walk_packages( tail, (None_vt(), some)) where {
+        val () = $Vicpack.free head
+      }
+      )
+    | @(some, ~None_vt()) =>
+      ( case+ head of
+      | ~$Vicpack.humidity_vt(h) => walk_packages( tail, (some, Some_vt(uint322bs h)))
+      | _ => walk_packages( tail, (some, None_vt())) where {
+        val () = $Vicpack.free head
+      }
+      )
+    )
+}
+end
 
 fn
   handle_line
@@ -285,13 +365,24 @@ in
               | ~None_vt() => ()
               | ~Some_vt(bs) => $BS.free(bs)
           }
-          | (~Some_vt( time), ~Some_vt(hws), ~Some_vt(rawpayload)) => {
-            val () = $BS.printlnC( time
-                                 + $BS.pack "\t"
-                                 + hws
-                                 + $BS.pack "\t"
-                                 + rawpayload)
-          }
+          | (~Some_vt( time), ~Some_vt(hws), ~Some_vt(rawpayload)) =>
+            case+ get_temperature_humidity( rawpayload) of
+            | ~None_vt() => {
+              val () = $BS.free( time)
+              val () = $BS.free( hws)
+              val () = $BS.free( rawpayload)
+            }
+            | ~Some_vt( @(temperature, humidity)) => {
+              val () = $BS.printlnC( time
+                                  + $BS.pack "\t"
+                                  + hws
+                                  + $BS.pack "\t"
+                                  + temperature
+                                  + $BS.pack "\t"
+                                  + humidity
+                                  )
+              val () = $BS.free( rawpayload)
+            }
         } // meta
         else () // root
     }
