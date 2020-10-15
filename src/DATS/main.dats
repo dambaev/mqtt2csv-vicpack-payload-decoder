@@ -633,6 +633,26 @@ implement main0() = {
   prval (pf1, pf2) = array_v_uncons pf
   val () = !p := (@{ fd = g0ofg1 0, events = POLLIN, revents = g0int2int_int_sint 0}:pollfd_t)
   prval () = pf := array_v_cons( pf1, pf2)
+  val () = println!( "time"
+                   , "\t"
+                   , "serial number"
+                   , "\t"
+                   , "temperature"
+                   , "\t"
+                   , "temperature"
+                   , "\t"
+                   , "humidity"
+                   , "\t"
+                   , "VOC_IAQ"
+                   , "\t"
+                   , "VOC_HUMIDITY"
+                   , "\t"
+                   , "VOC_PRESSURE_VT"
+                   , "\t"
+                   , "VOC_AMBIENT_VT"
+                   , "\t"
+                   , "VOC_SOUND_PEAK"
+                   )
   val () = loop( pf | buf, p, i2sz 1)
   val () = array_ptr_free( pf, fpf | p)
   val () = $BS.free buf
