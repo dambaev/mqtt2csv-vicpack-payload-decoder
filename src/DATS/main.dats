@@ -375,7 +375,7 @@ ifcase
                              ) where {
                  fn unopt( ov: Option_vt($BS.BytestringNSH0)):<!wrt> $BS.BytestringNSH0 =
                     case+ ov of
-                    | ~None_vt() => $BS.empty()
+                    | ~None_vt() => $BS.pack "-"
                     | ~Some_vt(v) => v
                   }
               )
