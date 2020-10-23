@@ -251,6 +251,7 @@ fn
               , $BS.BytestringNSH0 // voc_pressure
               , $BS.BytestringNSH0 // voc_ambient_light
               , $BS.BytestringNSH0 // voc_sound_peak
+              , $BS.BytestringNSH0 // internal_battery
               )
            ) =
 let
@@ -314,6 +315,7 @@ ifcase
                                        , None_vt()
                                        , None_vt()
                                        , None_vt()
+                                       , None_vt()
                                        )
                                      ) where {
             val () = $BS.free( arr_pf | decoded)
@@ -332,8 +334,10 @@ ifcase
                      , Option_vt( $BS.BytestringNSH0)
                      , Option_vt( $BS.BytestringNSH0)
                      , Option_vt( $BS.BytestringNSH0)
+                     , Option_vt( $BS.BytestringNSH0)
                      )
               ): Option_vt( @( $BS.BytestringNSH0
+                             , $BS.BytestringNSH0
                              , $BS.BytestringNSH0
                              , $BS.BytestringNSH0
                              , $BS.BytestringNSH0
@@ -354,6 +358,7 @@ ifcase
                  , ~None_vt()
                  , ~None_vt()
                  , ~None_vt()
+                 , ~None_vt()
                  )=> None_vt() (* some non-interesting package*)
               | @( temperature
                  , humidity
@@ -363,6 +368,7 @@ ifcase
                  , voc_pressure
                  , voc_ambient_light
                  , voc_sound_peak
+                 , internal_battery
                  ) => Some_vt( ( unopt temperature
                                , unopt humidity
                                , unopt voc_iaq
@@ -371,6 +377,7 @@ ifcase
                                , unopt voc_pressure
                                , unopt voc_ambient_light
                                , unopt voc_sound_peak
+                               , unopt internal_battery
                                )
                              ) where {
                  fn unopt( ov: Option_vt($BS.BytestringNSH0)):<!wrt> $BS.BytestringNSH0 =
@@ -389,37 +396,41 @@ ifcase
                  , o6 as Some_vt(_)
                  , o7 as Some_vt(_)
                  , o8 as Some_vt(_)
-                 ) => walk_packages( tail, (o1, o2, o3, o4, o5, o6, o7, o8)) where {
+                 , o9 as Some_vt(_)
+                 ) => walk_packages( tail, (o1, o2, o3, o4, o5, o6, o7, o8, o9)) where {
                 val () = $Vicpack.free head
               }
-              | @(o1, o2, o3, o4, o5, o6, o7, o8) =>
+              | @(o1, o2, o3, o4, o5, o6, o7, o8, o9) =>
                 ( case+ head of
-                | ~$Vicpack.temperature_vt(t) => walk_packages( tail, (Some_vt(double2bs t), o2, o3, o4, o5, o6, o7, o8)) where {
+                | ~$Vicpack.temperature_vt(t) => walk_packages( tail, (Some_vt(double2bs t), o2, o3, o4, o5, o6, o7, o8, o9)) where {
                   val- ~None_vt() = o1
                 }
-                | ~$Vicpack.humidity_vt(h) => walk_packages( tail, (o1, Some_vt(uint322bs h), o3, o4, o5, o6, o7, o8)) where {
+                | ~$Vicpack.humidity_vt(h) => walk_packages( tail, (o1, Some_vt(uint322bs h), o3, o4, o5, o6, o7, o8, o9)) where {
                   val- ~None_vt() = o2
                 }
-                | ~$Vicpack.voc_iaq_vt( @{ state = state, index=index}) => walk_packages( tail, (o1, o2, Some_vt(iaq), o4, o5, o6, o7, o8)) where {
+                | ~$Vicpack.voc_iaq_vt( @{ state = state, index=index}) => walk_packages( tail, (o1, o2, Some_vt(iaq), o4, o5, o6, o7, o8, o9)) where {
                   val iaq = $BS.pack "state: " + uc2bs state + $BS.pack ", index: " + uint162bs index
                   val- ~None_vt() = o3
                 }
-                | ~$Vicpack.voc_temperature_vt(c) => walk_packages( tail, (o1, o2, o3, Some_vt(double2bs c), o5, o6, o7, o8)) where {
+                | ~$Vicpack.voc_temperature_vt(c) => walk_packages( tail, (o1, o2, o3, Some_vt(double2bs c), o5, o6, o7, o8, o9)) where {
                   val- ~None_vt() = o4
                 }
-                | ~$Vicpack.voc_humidity_vt(c) => walk_packages( tail, (o1, o2, o3, o4, Some_vt(double2bs c), o6, o7, o8)) where {
+                | ~$Vicpack.voc_humidity_vt(c) => walk_packages( tail, (o1, o2, o3, o4, Some_vt(double2bs c), o6, o7, o8, o9)) where {
                   val- ~None_vt() = o5
                 }
-                | ~$Vicpack.voc_pressure_vt(c) => walk_packages( tail, (o1, o2, o3, o4, o5, Some_vt(double2bs c), o7, o8)) where {
+                | ~$Vicpack.voc_pressure_vt(c) => walk_packages( tail, (o1, o2, o3, o4, o5, Some_vt(double2bs c), o7, o8, o9)) where {
                   val- ~None_vt() = o6
                 }
-                | ~$Vicpack.voc_ambient_light_vt(c) => walk_packages( tail, (o1, o2, o3, o4, o5, o6, Some_vt(double2bs c), o8)) where {
+                | ~$Vicpack.voc_ambient_light_vt(c) => walk_packages( tail, (o1, o2, o3, o4, o5, o6, Some_vt(double2bs c), o8, o9)) where {
                   val- ~None_vt() = o7
                 }
-                | ~$Vicpack.voc_sound_peak_vt(c) => walk_packages( tail, (o1, o2, o3, o4, o5, o6, o7, Some_vt(uint162bs c))) where {
+                | ~$Vicpack.voc_sound_peak_vt(c) => walk_packages( tail, (o1, o2, o3, o4, o5, o6, o7, Some_vt(uint162bs c), o9)) where {
                   val- ~None_vt() = o8
                 }
-                | _ => walk_packages( tail, (o1, o2, o3, o4, o5, o6, o7, o8)) where {
+                | ~$Vicpack.internal_battery_vt(c) => walk_packages( tail, (o1, o2, o3, o4, o5, o6, o7, o8, Some_vt(double2bs c))) where {
+                  val- ~None_vt() = o9
+                }
+                | _ => walk_packages( tail, (o1, o2, o3, o4, o5, o6, o7, o8, o9)) where {
                   val () = $Vicpack.free head
                 }
                 )
@@ -493,7 +504,7 @@ in
               val () = $BS.free( hws)
               val () = $BS.free( rawpayload)
             }
-            | ~Some_vt( @(temperature, humidity, voc_iaq, voc_temperature, voc_humidity, voc_pressure, voc_ambient_light, voc_sound_peak)) => {
+            | ~Some_vt( @(temperature, humidity, voc_iaq, voc_temperature, voc_humidity, voc_pressure, voc_ambient_light, voc_sound_peak, internal_battery)) => {
               val () = $BS.printlnC( time
                                   + $BS.pack "\t"
                                   + hws
@@ -513,6 +524,8 @@ in
                                   + voc_ambient_light
                                   + $BS.pack "\t"
                                   + voc_sound_peak
+                                  + $BS.pack "\t"
+                                  + internal_battery
                                   )
               val () = $BS.free( rawpayload)
             }
@@ -639,6 +652,8 @@ implement main0() = {
                    , "VOC_AMBIENT"
                    , "\t"
                    , "VOC_SOUND_PEAK"
+                   , "\t"
+                   , "INTERNAL_BATTERY"
                    )
   val () = loop( pf | buf, p, i2sz 1)
   val () = array_ptr_free( pf, fpf | p)
