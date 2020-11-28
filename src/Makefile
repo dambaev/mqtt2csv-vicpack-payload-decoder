@@ -56,7 +56,7 @@ jansson_dats.o: $(ATSHOME)/lib/ats2-postiats-0.3.13/contrib/atscntrb/atscntrb-hx
 
 
 mqtt2csv-vicpack-payload-decoder: $(ATS_OBJS)
-	$(ATSCC) $(ATSCCFLAGS) -o $@ $(ATS_OBJS) --constraint-ignore DATS/main.dats $(ATSLIBS)
+	$(ATSCC) $(ATSCCFLAGS) -o $@ $(ATS_OBJS) DATS/main.dats $(ATSLIBS)
 
 cleanall:: ; $(RMF) test*
 #

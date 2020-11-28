@@ -243,15 +243,15 @@ fn
   get_temperature_humidity
   (vi: !$BS.Bytestring0
   ):
-  Option_vt( @( $BS.BytestringNSH0 // temperature
-              , $BS.BytestringNSH0 // humidity
-              , $BS.BytestringNSH0 // voc_iaq
-              , $BS.BytestringNSH0 // voc_temperature
-              , $BS.BytestringNSH0 // voc_humidity
-              , $BS.BytestringNSH0 // voc_pressure
-              , $BS.BytestringNSH0 // voc_ambient_light
-              , $BS.BytestringNSH0 // voc_sound_peak
-              , $BS.BytestringNSH0 // internal_battery
+  Option_vt( @( $BS.BytestringNSH1 // temperature
+              , $BS.BytestringNSH1 // humidity
+              , $BS.BytestringNSH1 // voc_iaq
+              , $BS.BytestringNSH1 // voc_temperature
+              , $BS.BytestringNSH1 // voc_humidity
+              , $BS.BytestringNSH1 // voc_pressure
+              , $BS.BytestringNSH1 // voc_ambient_light
+              , $BS.BytestringNSH1 // voc_sound_peak
+              , $BS.BytestringNSH1 // internal_battery
               )
            ) =
 let
@@ -326,25 +326,25 @@ ifcase
               {n:nat}
               .<n>.
               ( xs: list_vt( $Vicpack.Vicpack, n)
-              , acc: ( Option_vt( $BS.BytestringNSH0)
-                     , Option_vt( $BS.BytestringNSH0)
-                     , Option_vt( $BS.BytestringNSH0)
-                     , Option_vt( $BS.BytestringNSH0)
-                     , Option_vt( $BS.BytestringNSH0)
-                     , Option_vt( $BS.BytestringNSH0)
-                     , Option_vt( $BS.BytestringNSH0)
-                     , Option_vt( $BS.BytestringNSH0)
-                     , Option_vt( $BS.BytestringNSH0)
+              , acc: ( Option_vt( $BS.BytestringNSH1)
+                     , Option_vt( $BS.BytestringNSH1)
+                     , Option_vt( $BS.BytestringNSH1)
+                     , Option_vt( $BS.BytestringNSH1)
+                     , Option_vt( $BS.BytestringNSH1)
+                     , Option_vt( $BS.BytestringNSH1)
+                     , Option_vt( $BS.BytestringNSH1)
+                     , Option_vt( $BS.BytestringNSH1)
+                     , Option_vt( $BS.BytestringNSH1)
                      )
-              ): Option_vt( @( $BS.BytestringNSH0
-                             , $BS.BytestringNSH0
-                             , $BS.BytestringNSH0
-                             , $BS.BytestringNSH0
-                             , $BS.BytestringNSH0
-                             , $BS.BytestringNSH0
-                             , $BS.BytestringNSH0
-                             , $BS.BytestringNSH0
-                             , $BS.BytestringNSH0
+              ): Option_vt( @( $BS.BytestringNSH1
+                             , $BS.BytestringNSH1
+                             , $BS.BytestringNSH1
+                             , $BS.BytestringNSH1
+                             , $BS.BytestringNSH1
+                             , $BS.BytestringNSH1
+                             , $BS.BytestringNSH1
+                             , $BS.BytestringNSH1
+                             , $BS.BytestringNSH1
                              )
                            ) =
             case+ xs of
@@ -380,7 +380,7 @@ ifcase
                                , unopt internal_battery
                                )
                              ) where {
-                 fn unopt( ov: Option_vt($BS.BytestringNSH0)):<!wrt> $BS.BytestringNSH0 =
+                 fn unopt( ov: Option_vt($BS.BytestringNSH1)):<!wrt> $BS.BytestringNSH1 =
                     case+ ov of
                     | ~None_vt() => $BS.pack "-"
                     | ~Some_vt(v) => v
@@ -505,6 +505,8 @@ in
               val () = $BS.free( rawpayload)
             }
             | ~Some_vt( @(temperature, humidity, voc_iaq, voc_temperature, voc_humidity, voc_pressure, voc_ambient_light, voc_sound_peak, internal_battery)) => {
+              val () = assertloc( $BS.isnot_empty( time))
+              val () = assertloc( $BS.isnot_empty( hws))
               val () = $BS.printlnC( time
                                   + $BS.pack "\t"
                                   + hws
@@ -609,15 +611,32 @@ let
 in
   if band( pollfd.revents, POLLIN) <> POLLIN
   then handle_line( buf) (* process the rest and exit *)
-  else loop (fds_pf | buf, fds, fds_sz) where {
+  else 
+  let
     val available = g1ofg0( get_fd_pending_bytes( pollfd. fd))
-    val ( pf, fpf | p) = array_ptr_alloc<uchar>( available)
-    val readed = read{uchar}( pf | 0, p, available)
-    var newinput: $BS.Bytestring0?
-    val () = newinput := $BS.pack( pf, fpf | p, available, available)
-    val () = buf := buf + newinput
-    val () = handle_lines( buf)
-  }
+  in
+    if available <= 0
+    then loop (fds_pf | buf, fds, fds_sz)
+    else
+    let
+      val ( pf, fpf | p) = array_ptr_alloc<uchar>( available)
+      val () = assertloc( ptr_isnot_null p)
+      val readed = read{uchar}( pf | 0, p, available)
+      var newinput: $BS.Bytestring0?
+      val () = newinput := $BS.pack( pf, fpf | p, available, available)
+    in
+      if $BS.isnot_empty buf
+      then loop (fds_pf | buf, fds, fds_sz) where {
+        val () = buf := buf + newinput
+        val () = handle_lines( buf)
+      }
+      else loop (fds_pf | buf, fds, fds_sz) where {
+        val () = $BS.free buf
+        val () = buf := newinput
+        val () = handle_lines( buf)
+      }
+    end
+  end
 end
 
 implement main0() = {
