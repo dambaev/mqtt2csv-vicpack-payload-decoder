@@ -4,8 +4,12 @@
 #define ATS_DYNLOADFLAG 0
 
 #define LIBS_targetloc "../libs" (* search path for external libs *)
+
+symintr ++
+infixl (+) ++
 staload BS="{$LIBS}/ats-bytestring/SATS/bytestring.sats"
 staload "{$LIBS}/ats-bytestring/SATS/bytestring.sats" (* overload operators *)
+
 staload Vicpack="{$LIBS}/ats-vicpack/src/SATS/vicpack.sats"
 staload B64="{$LIBS}/ats-base64/SATS/ats-base64.sats"
 
@@ -63,7 +67,7 @@ implement get_fd_pending_bytes(socket) = res where {
 }
 extern
 fn read
-  {a: t0ype | sizeof(a) == sizeof(char) || sizeof(a) == sizeof(uchar) }{n: nat}{l:agz}
+  {a: t0ype | sizeof(a) == sizeof(char) || sizeof(a) == sizeof(uchar) || sizeof(a) == sizeof(byte) }{n: nat}{l:agz}
   ( pf: !array_v( a?, l, n) >> array_v(a, l, n)
   | fd: int
   , ptr l
@@ -618,24 +622,23 @@ in
     if available <= 0
     then loop (fds_pf | buf, fds, fds_sz)
     else
-    let
-      val ( pf, fpf | p) = array_ptr_alloc<uchar>( available)
-      val () = assertloc( ptr_isnot_null p)
-      val readed = read{uchar}( pf | 0, p, available)
-      var newinput: $BS.Bytestring0?
-      val () = newinput := $BS.pack( pf, fpf | p, available, available)
-    in
       if $BS.isnot_empty buf
       then loop (fds_pf | buf, fds, fds_sz) where {
-        val () = buf := buf + newinput
+        val buf_sz = $BS.length buf
+        val () = buf :=  $BS.create( buf_sz + available) ++ buf
+        val ( pf | p, usz) = $BS.bs2unused_bytes buf
+        val readed = read{byte}( pf | 0, p, available)
+        val () = $BS.unused_bytes_addback( pf | buf, available)
         val () = handle_lines( buf)
       }
       else loop (fds_pf | buf, fds, fds_sz) where {
         val () = $BS.free buf
-        val () = buf := newinput
+        val () = buf := $BS.create( available)
+        val ( pf | p, usz) = $BS.bs2unused_bytes buf
+        val readed = read{byte}( pf | 0, p, available)
+        val () = $BS.unused_bytes_addback( pf | buf, available)
         val () = handle_lines( buf)
       }
-    end
   end
 end
 
