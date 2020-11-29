@@ -5,10 +5,8 @@
 
 #define LIBS_targetloc "../libs" (* search path for external libs *)
 
-symintr ++
-infixl (+) ++
+#include "{$LIBS}/ats-bytestring/HATS/bytestring.hats" (* overload operators *)
 staload BS="{$LIBS}/ats-bytestring/SATS/bytestring.sats"
-staload "{$LIBS}/ats-bytestring/SATS/bytestring.sats" (* overload operators *)
 
 staload Vicpack="{$LIBS}/ats-vicpack/src/SATS/vicpack.sats"
 staload B64="{$LIBS}/ats-base64/SATS/ats-base64.sats"
